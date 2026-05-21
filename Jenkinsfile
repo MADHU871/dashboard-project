@@ -100,11 +100,14 @@ pipeline {
             steps {
 
                 sh '''
-                docker stop $CONTAINER_NAME || true
-                docker rm $CONTAINER_NAME || true
+                docker stop dashboard-container || true
+
+                docker rm dashboard-container || true
+
+                docker container prune -f || true
 
                 docker run -d \
-                --name $CONTAINER_NAME \
+                --name dashboard-container \
                 -p 3000:80 \
                 $IMAGE_NAME:latest
                 '''
@@ -126,7 +129,7 @@ pipeline {
             steps {
 
                 sh '''
-                docker logs $CONTAINER_NAME || true
+                docker logs dashboard-container || true
                 '''
             }
         }
@@ -136,7 +139,7 @@ pipeline {
             steps {
 
                 sh '''
-                docker cp $CONTAINER_NAME:/usr/share/nginx/html .
+                docker cp dashboard-container:/usr/share/nginx/html .
                 '''
             }
         }
@@ -146,7 +149,7 @@ pipeline {
             steps {
 
                 sh '''
-                docker inspect $CONTAINER_NAME
+                docker inspect dashboard-container
                 '''
             }
         }
