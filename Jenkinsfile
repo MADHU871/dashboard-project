@@ -15,6 +15,7 @@ pipeline {
     }
 
     triggers {
+
         githubPush()
     }
 
@@ -104,7 +105,7 @@ pipeline {
 
                 docker run -d \
                 --name $CONTAINER_NAME \
-                -p 3000:3000 \
+                -p 3000:80 \
                 $IMAGE_NAME:latest
                 '''
             }
@@ -135,7 +136,7 @@ pipeline {
             steps {
 
                 sh '''
-                docker cp $CONTAINER_NAME:/app/package.json .
+                docker cp $CONTAINER_NAME:/usr/share/nginx/html .
                 '''
             }
         }
@@ -219,6 +220,19 @@ pipeline {
                 --name $WEB_APP_NAME \
                 --resource-group $RESOURCE_GROUP \
                 --docker-custom-image-name $IMAGE_NAME:latest
+                '''
+            }
+        }
+
+        stage('Azure Port Config') {
+
+            steps {
+
+                sh '''
+                az webapp config appsettings set \
+                --resource-group $RESOURCE_GROUP \
+                --name $WEB_APP_NAME \
+                --settings WEBSITES_PORT=80
                 '''
             }
         }
