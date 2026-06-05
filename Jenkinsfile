@@ -1,9 +1,8 @@
-pipeline {
+ipeline {
 
     agent any
 
     environment {
-
         IMAGE_NAME = "mad0008271/dashboard-project"
         CONTAINER_NAME = "dashboard-container"
 
@@ -15,33 +14,26 @@ pipeline {
     }
 
     triggers {
-
         githubPush()
     }
 
     stages {
 
         stage('GitHub Checkout') {
-
             steps {
-
                 git branch: 'main',
                 url: 'https://github.com/MADHU871/dashboard-project.git'
             }
         }
 
         stage('Docker Version') {
-
             steps {
-
                 sh 'docker --version'
             }
         }
 
         stage('Docker Build') {
-
             steps {
-
                 sh '''
                 docker build -t $IMAGE_NAME:latest .
                 '''
@@ -49,9 +41,7 @@ pipeline {
         }
 
         stage('Docker Images') {
-
             steps {
-
                 sh '''
                 docker images
                 '''
@@ -59,15 +49,14 @@ pipeline {
         }
 
         stage('Docker Login') {
-
             steps {
-
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
                     sh '''
                     echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
                     '''
@@ -76,9 +65,7 @@ pipeline {
         }
 
         stage('Docker Push') {
-
             steps {
-
                 sh '''
                 docker push $IMAGE_NAME:latest
                 '''
@@ -86,9 +73,7 @@ pipeline {
         }
 
         stage('Docker Pull') {
-
             steps {
-
                 sh '''
                 docker pull $IMAGE_NAME:latest
                 '''
@@ -96,28 +81,24 @@ pipeline {
         }
 
         stage('Docker Run') {
-
             steps {
-
                 sh '''
-                docker stop dashboard-container || true
+                docker stop $CONTAINER_NAME || true
 
-                docker rm dashboard-container || true
+                docker rm $CONTAINER_NAME || true
 
                 docker container prune -f || true
 
                 docker run -d \
-                --name dashboard-container \
-                -p 3000:80 \
+                --name $CONTAINER_NAME \
+                -p 3010:80 \
                 $IMAGE_NAME:latest
                 '''
             }
         }
 
         stage('Docker PS') {
-
             steps {
-
                 sh '''
                 docker ps -a
                 '''
@@ -125,45 +106,38 @@ pipeline {
         }
 
         stage('Docker Logs') {
-
             steps {
-
                 sh '''
-                docker logs dashboard-container || true
+                docker logs $CONTAINER_NAME || true
                 '''
             }
         }
 
         stage('Docker Copy') {
-
             steps {
-
                 sh '''
-                docker cp dashboard-container:/usr/share/nginx/html .
+                docker cp $CONTAINER_NAME:/usr/share/nginx/html .
                 '''
             }
         }
 
-        stage('Docker Error Finder') {
-
+        stage('Docker Inspect') {
             steps {
-
                 sh '''
-                docker inspect dashboard-container
+                docker inspect $CONTAINER_NAME
                 '''
             }
         }
 
         stage('Azure Login') {
-
             steps {
-
-                withCredentials([usernamePassword(
-                    credentialsId: 'azure-service-principal',
-                    usernameVariable: 'AZURE_CLIENT_ID',
-                    passwordVariable: 'AZURE_CLIENT_SECRET'
-                )]) {
-
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'azure-service-principal',
+                        usernameVariable: 'AZURE_CLIENT_ID',
+                        passwordVariable: 'AZURE_CLIENT_SECRET'
+                    )
+                ]) {
                     sh '''
                     az login --service-principal \
                     --username $AZURE_CLIENT_ID \
@@ -175,9 +149,7 @@ pipeline {
         }
 
         stage('Azure Resource Group') {
-
             steps {
-
                 sh '''
                 az group create \
                 --name $RESOURCE_GROUP \
@@ -187,9 +159,7 @@ pipeline {
         }
 
         stage('Azure App Service Plan') {
-
             steps {
-
                 sh '''
                 az appservice plan create \
                 --name $APP_SERVICE_PLAN \
@@ -201,9 +171,7 @@ pipeline {
         }
 
         stage('Azure Web App Create') {
-
             steps {
-
                 sh '''
                 az webapp create \
                 --resource-group $RESOURCE_GROUP \
@@ -215,9 +183,7 @@ pipeline {
         }
 
         stage('Azure Container Config') {
-
             steps {
-
                 sh '''
                 az webapp config container set \
                 --name $WEB_APP_NAME \
@@ -228,9 +194,7 @@ pipeline {
         }
 
         stage('Azure Port Config') {
-
             steps {
-
                 sh '''
                 az webapp config appsettings set \
                 --resource-group $RESOURCE_GROUP \
@@ -241,9 +205,7 @@ pipeline {
         }
 
         stage('Azure Restart') {
-
             steps {
-
                 sh '''
                 az webapp restart \
                 --name $WEB_APP_NAME \
@@ -252,12 +214,10 @@ pipeline {
             }
         }
 
-        stage('Azure URL') {
-
+        stage('Azure Health Check') {
             steps {
-
                 sh '''
-                az webapp browse \
+                az webapp show \
                 --name $WEB_APP_NAME \
                 --resource-group $RESOURCE_GROUP
                 '''
@@ -265,9 +225,7 @@ pipeline {
         }
 
         stage('Automation Complete') {
-
             steps {
-
                 echo 'CI/CD Pipeline Completed Successfully'
             }
         }
@@ -276,17 +234,14 @@ pipeline {
     post {
 
         success {
-
             echo 'Build Success'
         }
 
         failure {
-
             echo 'Build Failed'
         }
 
         always {
-
             sh '''
             docker ps -a
             '''
